@@ -1,4 +1,4 @@
-/*
+ /*
  * (C) Copyright 2014 Aurélien Rodot. All rights reserved.
  *
  * You can redistribute this program and/or modify
@@ -15,22 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-
-#include <EEPROM.h>
-#include <avr/pgmspace.h>
-#include <SPI.h>
-#include <Gamebuino.h>
-Gamebuino gb;
+#include <Arduboy2.h>
+Arduboy2 gb;
 
 //Warning : this game require 3 channels, please set #NUM_CHANNELS 3 in libraries/gamebuino/settings.c or you won't hear all the sounds
 
 const byte logo[] PROGMEM = {64,30,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xFF,0xFF,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x81,0x32,0x4,0x8,0x10,0x0,0x0,0x0,0x9F,0x32,0x64,0xF9,0x90,0x0,0x0,0x0,0x81,0x32,0x4,0x38,0x30,0x0,0x0,0x0,0xF9,0x32,0x7C,0xF9,0x90,0x0,0x0,0x0,0x81,0x2,0x7C,0x9,0x90,0x0,0x0,0x0,0xFF,0xFF,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x81,0x2,0x4,0x8,0x10,0x0,0x0,0x0,0x9F,0x32,0x67,0x39,0xF0,0x0,0x0,0x0,0x9F,0x6,0x7,0x38,0x70,0x0,0x0,0x0,0x9F,0x32,0x67,0x39,0xF0,0x0,0x0,0x0,0x81,0x32,0x67,0x38,0x10,0x0,0x0,0x0,0xFF,0xFF,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x60,0x4C,0x93,0x20,0x60,0x60,0x0,0x0,0x26,0x4C,0x91,0x26,0x40,0x1,0xF8,0x0,0x20,0xCC,0x92,0x26,0x40,0xD,0xF8,0x20,0xA6,0x4C,0x93,0x26,0x40,0x81,0xF,0xE4,0x20,0x40,0x93,0x20,0x40,0x1,0xBF,0x80,0x3F,0xFF,0xFF,0xFF,0xC0,0x1,0xF8,0x0,0x7,0xFF,0xFF,0xFE,0x0,0x1,0xF8,0x0,0x0,0xFF,0xFF,0xF0,0x0,0x1,0xF8,0x0,0x0,0x1F,0xFF,0x80,0x0,0x1,0x98,0x0,0x0,0x3,0xFC,0x0,0x0,0xFF,0xFF,0xF0,0x0,0x0,0x60,0x0,0x0,0x0,0x0,0x8,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x8,0x0,0x0,0x0,0x0,0x0,0xC3,0xC,0x8,0x0,0x0,0x0,0x0,0x0,0x34,0xD3,0x48,0x0,0x0,0x0,0x0,0x0,0xCB,0x2C,0xB8,0x0,0x0,0x0,0x0,0x0,};
 
+// for Gamebuino button functions
+#define GB_BTN_RIGHT     0
+#define GB_BTN_LEFT      1
+#define GB_BTN_DOWN      2
+#define GB_BTN_UP        3
+#define GB_BTN_A         4
+#define GB_BTN_B         5
+
 //EEPROM offsets
-#define EEPROM_TOKEN 0xCAB2
-#define EEPROM_WEAPONS_OFFSET 0x004
-#define EEPROM_MAPS_OFFSET 0x006
-#define EEPROM_SCORE_OFFSET 0x0020
+#define EEPROM_WEAPONS_OFFSET 0x0000
+#define EEPROM_MAPS_OFFSET    0x0001
+#define EEPROM_SCORE_OFFSET   0x0002
 
 //Weapons and bullets subtypes
 #define NUMWEAPONS 13
@@ -59,7 +62,7 @@ byte unlockedMaps = 0;
 #define SCORETHRESHOLD_3 12
 #define SCORETHRESHOLD_4 14
 #define SCORETHRESHOLD_5 16
-const byte scoreThresholds[] = {SCORETHRESHOLD_1, SCORETHRESHOLD_2, SCORETHRESHOLD_3, SCORETHRESHOLD_4, SCORETHRESHOLD_5};
+const uint8_t scoreThresholds[] = {SCORETHRESHOLD_1, SCORETHRESHOLD_2, SCORETHRESHOLD_3, SCORETHRESHOLD_4, SCORETHRESHOLD_5};
 
 //Enemy types
 #define E_SMALL 0
@@ -71,7 +74,7 @@ const byte scoreThresholds[] = {SCORETHRESHOLD_1, SCORETHRESHOLD_2, SCORETHRESHO
 
 int cameraX, cameraY, shakeTimeLeft, shakeAmplitude;
 byte popupTimeLeft;
-const __FlashStringHelper* popupText;
+const char* popupText;
 
 int toScreenX(int x) {
   return x / SCALE - cameraX;
@@ -95,7 +98,7 @@ const uint16_t jump_sound[] PROGMEM = {0x0005, 0x7049, 0x884D, 0x354, 0x0000};
 const uint16_t enemy_felt_sound[] PROGMEM = {0x8005, 0x8001, 0x8849, 0xF20, 0x0000};
 const uint16_t shotgun_sound[] PROGMEM = {0x0045, 0x7049, 0x334, 0x0000};
 const uint16_t laser_sound[] PROGMEM = {0x0005, 0x784D, 0x7849, 0x670, 0x0000};
-const unsigned int club_sound[] PROGMEM = {0x8005, 0x784D, 0x7849, 0x318, 0x0000};
+const uint16_t club_sound[] PROGMEM = {0x8005, 0x784D, 0x7849, 0x318, 0x0000};
 
 
 
@@ -220,7 +223,7 @@ const byte* const maps[NUMMAPS] = {
   map0, map1, map2, map3, map4
 };
 
-unsigned int score[NUMMAPS];
+uint8_t score[NUMMAPS];
 
 const byte bricks[] PROGMEM = {
   8, 6, 0xFC, 0x24, 0xFC, 0x90, 0xFC, 0x48
@@ -275,7 +278,7 @@ class World {
         return 0;
 
       //maps are encoded like bitmaps so we can use getBitmapPixel
-      return gb.display.getBitmapPixel(tiles, tile_x, tile_y) > 0 ? 1 : 0;
+      return gb.getBitmapPixel(tiles, tile_x, tile_y) > 0 ? 1 : 0;
     }
 
     boolean solidCollisionAtPosition(int16_t x, int16_t y, int16_t w, int16_t h) {
@@ -325,27 +328,27 @@ class World {
         for (int x = xMin; x < xMax; x++ ) {
           if (x < 0 || x >= w || y < 0 || y >= h)
             continue;
-          if (gb.display.getBitmapPixel(tiles, x, y)) {
+          if (gb.getBitmapPixel(tiles, x, y)) {
             byte tileNumber = 1; //platform by default
             byte flip = NOFLIP;
             byte offset = 0;
             const byte* bitmap = platform;
-            if (y >= getHeight() / SPRITE_SIZE / SCALE - 1 || y <= 0 || gb.display.getBitmapPixel(tiles, x, y - 1)) {
+            if (y >= getHeight() / SPRITE_SIZE / SCALE - 1 || y <= 0 || gb.getBitmapPixel(tiles, x, y - 1)) {
               bitmap = wall; //bricks
             }
             else {
               if (edge) {
-                if (y > 0 && !gb.display.getBitmapPixel(tiles, x + 1, y)) {
+                if (y > 0 && !gb.getBitmapPixel(tiles, x + 1, y)) {
                   bitmap = edge; //platform corner
                   flip = FLIPH;
                   offset = 2;
                 }
-                if (y > 0 && !gb.display.getBitmapPixel(tiles, x - 1, y)) {
+                if (y > 0 && !gb.getBitmapPixel(tiles, x - 1, y)) {
                   bitmap = edge; //platform corner
                 }
               }
             }
-            gb.display.drawBitmap(x * SPRITE_SIZE - cameraX - offset, y * SPRITE_SIZE - cameraY, bitmap, NOROT, flip);
+            gb.drawBitmap(x * SPRITE_SIZE - cameraX - offset, y * SPRITE_SIZE - cameraY, bitmap, NOROT, flip);
           }
         }
       }
@@ -353,8 +356,11 @@ class World {
 
     void chooseMap() {
       int thisMap = mapNumber;
+      uint8_t toggleBlink = 1;
       while (1) {
-        if (gb.update()) {
+        if (gb.nextFrame()) {
+          gb.display(CLEAR_BUFFER);
+          gb.pollButtons();
 
           //assign the selected map
           tiles = maps[thisMap];
@@ -381,69 +387,72 @@ class World {
 
           }
 
-          gb.display.cursorY = LCDHEIGHT - 17;
-          printCentered(F("\21 Select map \20"));
-          gb.display.cursorX = 24;
-          gb.display.cursorY = LCDHEIGHT - 11;
-          gb.display.print(F("Score: "));
-          gb.display.print(score[thisMap]);
-          //draw the map centered on the screen
-          gb.display.drawBitmap(LCDWIDTH / 2 - getWidth() / 2 / SCALE / SPRITE_SIZE, LCDHEIGHT / 2 - getHeight() / 2 / SCALE / SPRITE_SIZE - 5, maps[thisMap]);
+          gb.setTextColor(WHITE);
+          gb.setCursor(22, HEIGHT - 26);
+          gb.print("\21 Select map \20");
+          gb.setCursor(34, HEIGHT - 16);
+          gb.print("Score: ");
+          gb.print(score[thisMap]);
+          gb.setTextColor(BLACK);
 
-          for (byte x = SPRITE_SIZE; x < LCDWIDTH - SPRITE_SIZE; x += SPRITE_SIZE) {
-            gb.display.drawBitmap(x, 0, platform);
+          gb.drawBitmap(0, 5, logo);
+
+          //draw the map centered on the screen
+          gb.drawBitmap(96 - getWidth() / 2 / SCALE / SPRITE_SIZE, 20 - getHeight() / 2 / SCALE / SPRITE_SIZE, maps[thisMap]);
+
+/*        for (byte x = SPRITE_SIZE; x < LCDWIDTH - SPRITE_SIZE; x += SPRITE_SIZE) {
+            gb.drawBitmap(x, 0, platform);
           }
           for (byte y = SPRITE_SIZE; y < LCDHEIGHT; y += SPRITE_SIZE) {
-            gb.display.drawBitmap(0, y, wall);
-            gb.display.drawBitmap(LCDWIDTH - SPRITE_SIZE, y, wall);
+            gb.drawBitmap(0, y, wall);
+            gb.drawBitmap(LCDWIDTH - SPRITE_SIZE, y, wall);
           }
           if (edge) { //draw the ends with the according bitmap
-            gb.display.drawBitmap(0, 0, edge);
-            gb.display.drawBitmap(LCDWIDTH - SPRITE_SIZE - 2, 0, edge, NOROT, FLIPH);
+            gb.drawBitmap(0, 0, edge);
+            gb.drawBitmap(LCDWIDTH - SPRITE_SIZE - 2, 0, edge, NOROT, FLIPH);
           }
           else { //draw with end with a regular platform if there is no edge bitmap
-            gb.display.drawBitmap(0, 0, platform);
-            gb.display.drawBitmap(LCDWIDTH - SPRITE_SIZE, 0, platform);
-          }
+            gb.drawBitmap(0, 0, platform);
+            gb.drawBitmap(LCDWIDTH - SPRITE_SIZE, 0, platform);
+          } */
+          if (gb.everyXFrames(15)) toggleBlink ^= 1;
           if (thisMap == unlockedMaps) {
+            gb.setTextColor(WHITE);
             for (byte i = 0; i < sizeof(scoreThresholds); i++) {
               if (score[thisMap] < scoreThresholds[i]) {
-                gb.display.cursorY = LCDHEIGHT - 5;
-                gb.display.cursorX = 12;
-                if ((gb.frameCount % 10) > 3) { //make it blink !
-                  gb.display.print(F("Next unlock: "));
-                  gb.display.print(scoreThresholds[i]);
+                gb.setCursor(22, HEIGHT - 7);
+                if (toggleBlink) { //make it blink !
+                  gb.print("Next unlock: ");
+                  gb.print(scoreThresholds[i]);
                 }
                 break;
               }
             }
+            gb.setTextColor(BLACK);
           }
           if (thisMap > unlockedMaps) {
-            if ((gb.frameCount % 10) > 3) { //make it blink !
-              gb.display.setColor(BLACK);
-              gb.display.fillRect(28, 15, 28, 7);
-              gb.display.setColor(WHITE);
-              gb.display.cursorX = 29;
-              gb.display.cursorY = 16;
-              gb.display.print(F("LOCKED!"));
+            if (toggleBlink) { //make it blink !
+              gb.drawRect(74, 15, 43, 9, WHITE);
+              gb.setTextBackground(WHITE);
+              gb.setTextColor(BLACK);
+              gb.setCursor(75, 16);
+              gb.print("LOCKED!");
+              gb.setTextBackground(BLACK);
             }
           }
-          if (gb.buttons.pressed(BTN_A) && (thisMap <= unlockedMaps)) {
+          if (gb.pressed(A_BUTTON) && (thisMap <= unlockedMaps)) {
             initGame();
             return;
           }
-          if (gb.buttons.pressed(BTN_RIGHT))
+          if (gb.justPressed(RIGHT_BUTTON))
             thisMap = (thisMap + 1) % NUMMAPS;
-          if (gb.buttons.pressed(BTN_LEFT))
+          if (gb.justPressed(LEFT_BUTTON))
             thisMap = (thisMap - 1 + NUMMAPS) % NUMMAPS;
-          if (gb.buttons.pressed(BTN_C) || gb.buttons.pressed(BTN_B)) {
-            mainMenu();
-          }
         }
       }
     }
 
-    boolean addScore(unsigned int newScore) {
+    boolean addScore(byte newScore) {
       if (newScore > score[mapNumber]) {
         score[mapNumber] = newScore;
         return true;
@@ -460,8 +469,8 @@ World world;
 
 class Box {
   public:
-    int x, y, vx, vy;
-    char dir;
+    int16_t x, y, vx, vy;
+    int8_t dir;
     virtual byte getType() {
       return 0;
     };
@@ -500,7 +509,7 @@ class Box {
 
       x += vx;
       if (getXBounce() >= 0) {
-        char vxdir = vx > 0 ? 1 : -1;
+        int8_t vxdir = vx > 0 ? 1 : -1;
         if (world.solidCollisionAtPosition(x, y, getWidth(), getHeight())) {
           collided = 1;
           do {
@@ -513,7 +522,7 @@ class Box {
 
       y += vy;
       if (getXBounce() >= 0) {
-        char vydir = vy > 0 ? 1 : -1;
+        int8_t vydir = vy > 0 ? 1 : -1;
         if (world.solidCollisionAtPosition(x, y, getWidth(), getHeight())) {
           collided = 1;
           do {
@@ -541,7 +550,10 @@ class Box {
     void draw() {
       if (isOffScreen())
         return; //skip boxes which are out of the screen
-      gb.display.fillRect(toScreenX(x), toScreenY(y), getWidth() / SCALE, getHeight() / SCALE);
+      if (gb.getTextColor() == INVERT)
+        gb.fillRect(toScreenX(x), toScreenY(y), getWidth() / SCALE, getHeight() / SCALE, INVERT);
+      else
+        gb.fillRect(toScreenX(x), toScreenY(y), getWidth() / SCALE, getHeight() / SCALE);
     }
 };
 
@@ -754,16 +766,13 @@ class Bullet :
           //set the camera shake
           shakeTimeLeft = 10;
           shakeAmplitude = 2;
-          gb.sound.playPattern(blast_sound, 0);
+          //gb.sound.playPattern(blast_sound, 0);
         }
       }
     }
 
     void draw() {
       if (timeLeft) {
-        if (subtype == W_LASER) {
-          gb.display.setColor(INVERT);
-        }
         Box::draw();
       }
     }
@@ -991,32 +1000,32 @@ class Weapon {
 
       switch (subtype) {
         case W_ROCKET :
-          gb.sound.playPattern(rocket_sound, 0);
+          //gb.sound.playPattern(rocket_sound, 0);
           break;
         case W_REVOLVER :
         case W_MACHINEGUN :
         case W_SNIPER :
-          gb.sound.playPattern(machinegun_sound, 0);
+          //gb.sound.playPattern(machinegun_sound, 0);
           break;
         case W_GRENADE :
         case W_DISK :
-          gb.sound.playPattern(grenade_sound, 0);
+          //gb.sound.playPattern(grenade_sound, 0);
           break;
         case W_SHOTGUN :
-          gb.sound.playPattern(shotgun_sound, 0);
+          //gb.sound.playPattern(shotgun_sound, 0);
           break;
         case W_MINE :
           break;
         case W_PISTOL :
         case W_AKIMBO :
         case W_RIFLE :
-          gb.sound.playTick();
+          //gb.sound.playTick();
           break;
         case W_LASER :
-          gb.sound.playPattern(laser_sound, 0);
+          //gb.sound.playPattern(laser_sound, 0);
           break;
         case W_CLUB :
-          gb.sound.playPattern(club_sound, 0);
+          //gb.sound.playPattern(club_sound, 0);
           break;
       }
     }
@@ -1040,12 +1049,12 @@ class Weapon {
       }
       else {
         if (isAutomatic()) {
-          if (gb.buttons.repeat(BTN_A, 1)) {
+          if (repeat(GB_BTN_A, 1)) {
             shoot();
           }
         }
         else {
-          if (gb.buttons.pressed(BTN_A)) {
+          if (gb.pressed(A_BUTTON)) {
             shoot();
           }
         }
@@ -1130,34 +1139,32 @@ class Weapon {
       }
 
       if (bitmap) { //draw the weappon
-        gb.display.drawBitmap(bx, by, bitmap, NOROT, flip);
+        gb.drawBitmap(bx, by, bitmap, NOROT, flip);
       }
       if (bitmapWhite) {
-        gb.display.setColor(WHITE);
-        gb.display.drawBitmap(bx, by, bitmapWhite, NOROT, flip);
-        gb.display.setColor(BLACK);
+        gb.setTextColor(WHITE);
+        gb.drawBitmap(bx, by, bitmapWhite, NOROT, flip);
+        gb.setTextColor(BLACK);
       }
       if (subtype == W_AKIMBO) { //draw the symetric of the pistol in the akimbo case
         if (bitmap) {
-          gb.display.drawBitmap(bx, by, bitmap, NOROT, (flip + 1) % 2);
+          gb.drawBitmap(bx, by, bitmap, NOROT, (flip + 1) % 2);
         }
         if (bitmapWhite) {
-          gb.display.setColor(WHITE);
-          gb.display.drawBitmap(bx, by, bitmapWhite, NOROT, (flip + 1) % 2);
-          gb.display.setColor(BLACK);
+          gb.setTextColor(WHITE);
+          gb.drawBitmap(bx, by, bitmapWhite, NOROT, (flip + 1) % 2);
+          gb.setTextColor(BLACK);
         }
       }
       if (subtype == W_LASER) { //reloading line on the laser
-        gb.display.setColor(WHITE);
-        gb.display.drawFastHLine(toScreenX(shooter->x), toScreenY(shooter->y) + 4, 6 - cooldown / 5);
-        gb.display.setColor(BLACK);
+        gb.drawFastHLine(toScreenX(shooter->x), toScreenY(shooter->y) + 4, 6 - cooldown / 5, BLACK);
       }
       if ((subtype == W_DISK) || (subtype == W_MINE)) { //refill animation
         if (shooter->dir > 0) {
-          gb.display.fillRect(toScreenX(shooter->x) + 6, toScreenY(shooter->y) + 4, 4 - cooldown / 4, 2);
+          gb.fillRect(toScreenX(shooter->x) + 6, toScreenY(shooter->y) + 4, 4 - cooldown / 4, 2);
         }
         else {
-          gb.display.fillRect(toScreenX(shooter->x) + cooldown / 4 - 4, toScreenY(shooter->y) + 4, 4, 2);
+          gb.fillRect(toScreenX(shooter->x) + cooldown / 4 - 4, toScreenY(shooter->y) + 4, 4, 2);
         }
       }
     }
@@ -1183,7 +1190,7 @@ class Player :
     boolean jumping;
     boolean doubleJumped;
     boolean dead;
-    unsigned int score;
+    uint8_t score;
 
     void init() {
       x = 128;
@@ -1230,7 +1237,7 @@ class Player :
       vy = -32;
       popupTimeLeft = 0;
       if (world.addScore(score)) {
-        popup(F("NEW HIGHSCORE!"), 40);
+        popup("NEW HIGHSCORE!", 40);
       }
       saveEEPROM();
     }
@@ -1238,19 +1245,22 @@ class Player :
     void update() {
       if (!dead) {
         //player input
-        if (gb.buttons.repeat(BTN_LEFT, 1)) {
+        if (repeat(GB_BTN_LEFT, 1)) {
           dir = -1;
           vx += 16 * dir;
         }
-        if (gb.buttons.repeat(BTN_RIGHT, 1)) {
+        if (repeat(GB_BTN_RIGHT, 1)) {
           dir = 1;
           vx += 16;
         }
-        if (gb.buttons.repeat(BTN_UP, 10) && (gb.buttons.timeHeld(BTN_DOWN) > 40)) {
-          weapon.subtype ++;
-          weapon.subtype %= NUMWEAPONS;
-          score = 0;
-          popup(F("WEAPON CHEAT"));
+        if (gb.pressed(UP_BUTTON)) {
+          gb.pollButtons();
+          if (gb.justPressed(DOWN_BUTTON)) {
+            weapon.subtype ++;
+            weapon.subtype %= NUMWEAPONS;
+            score = 0;
+            popup("WEAPON CHEAT");
+          }
         }
 
         if (y > world.getHeight()) {
@@ -1261,22 +1271,22 @@ class Player :
         if (world.solidCollisionAtPosition(x, y + 1, getWidth(), getHeight())) {
           doubleJumped = false;
         }
-        if (gb.buttons.pressed(BTN_B)) {
+        if (gb.pressed(B_BUTTON)) {
           if (world.solidCollisionAtPosition(x, y + 1, getWidth(), getHeight())) {
             vy = -32;
             jumping = true;
-            gb.sound.playPattern(jump_sound, 1);
+            //gb.sound.playPattern(jump_sound, 1);
           }
           else {
             if (doubleJumped == false) {
               vy = -32;
               doubleJumped = true;
               jumping = true;
-              gb.sound.playPattern(jump_sound, 1);
+              //gb.sound.playPattern(jump_sound, 1);
             }
           }
         }
-        if ((gb.buttons.timeHeld(BTN_B) > 0) && (gb.buttons.timeHeld(BTN_B) < 5) && (vy < 0) && jumping) {
+        if ((timeHeld(GB_BTN_B) > 0) && (vy < 0) && jumping) {
           if (doubleJumped) {
             vy -= 6;
           }
@@ -1291,7 +1301,7 @@ class Player :
 
       weapon.update();
 
-      char d = dir;
+      int8_t d = dir;
       Box::update(); //update physics
       dir = d; //override the direction calculated by Box::update(), which depend on velocity.
       //here the direction of the player should only depend on user input
@@ -1315,7 +1325,7 @@ class Player :
           frame = 1;
         }
       }
-      gb.display.drawBitmap(toScreenX(x) - 1, toScreenY(y), playerBitmap[frame], NOROT, flip);
+      gb.drawBitmap(toScreenX(x) - 1, toScreenY(y), playerBitmap[frame], NOROT, flip);
       weapon.draw();
     }
 };
@@ -1391,7 +1401,7 @@ class Enemy :
             x = world.getWidth() / 2 - getWidth() / 2;
             y = 0;
             vx = dir * 20;
-            gb.sound.playPattern(enemy_felt_sound, 2);
+            //gb.sound.playPattern(enemy_felt_sound, 2);
           }
           else {
             active = false;
@@ -1406,11 +1416,11 @@ class Enemy :
       int flip = (dir > 0) ? NOFLIP : FLIPH;
       if (subtype == E_SMALL) {
         byte frame = (dir * x / 16 + 255) % 5; //get the current frame from the x position. Add 255 to avoid being under 0.
-        gb.display.drawBitmap(toScreenX(x) - 1, toScreenY(y), smallEnemyBitmap[frame], NOROT, flip);
+        gb.drawBitmap(toScreenX(x) - 1, toScreenY(y), smallEnemyBitmap[frame], NOROT, flip);
       }
       else {
         byte frame = (dir * x / 16 + 255) % 6; //get the current frame from the x position. Add 255 to avoid being under 0.
-        gb.display.drawBitmap(toScreenX(x) - 4, toScreenY(y), bigEnemyBitmap[frame], NOROT, flip);
+        gb.drawBitmap(toScreenX(x) - 4, toScreenY(y), bigEnemyBitmap[frame], NOROT, flip);
       }
     }
 };
@@ -1419,7 +1429,7 @@ class Enemy :
 ///////////////////////////////////////////// ENEMY ENGINE
 /////////////////////////////////////////////
 
-#define NUMENEMIES 20
+#define NUMENEMIES 10
 Enemy enemies[NUMENEMIES];
 
 class EnemiesEngine {
@@ -1476,7 +1486,8 @@ class EnemiesEngine {
             if (bullets[j].destroyOnEnemyContact()) {
               bullets[j].vx = (bullets[j].vx * bullets[j].getXBounce()) / 100;
             }
-            enemies[i].health -= bullets[j].getDamage();
+            if (bullets[j].getDamage() > enemies[i].health) enemies[i].health = 0;
+            else enemies[i].health -= bullets[j].getDamage();
             //make the ennemy jump when dead
             if (enemies[i].health <= 0) {
               int dir;
@@ -1489,7 +1500,7 @@ class EnemiesEngine {
               //throw the enemy in the air
               enemies[i].vx = dir * random(24, 32);
               enemies[i].vy = random(-48, -64);
-              gb.sound.playPattern(enemy_death_sound, 1);
+              //gb.sound.playPattern(enemy_death_sound, 1);
             }
             else {
               if (bullets[j].subtype == W_CLUB) { // if not dead, go away from the player when hit by a club
@@ -1569,49 +1580,49 @@ class Crate :
       if (gb.collideRectRect(x, y, getWidth(), getHeight(),
                              player.x, player.y, player.getWidth(), player.getHeight())) {
         player.score++;
-        gb.sound.playOK();
+        //gb.sound.playOK();
         //add a random value to the weapon type inferior to the number of weapons
         //to avoid picking the same weapon
         player.weapon.subtype = (player.weapon.subtype + random(1, unlockedWeapons + 1)) % (unlockedWeapons + 1);
         switch (player.weapon.subtype) {
           case W_CLUB :
-            popup(F("CLUB"));
+            popup("CLUB");
             break;
           case W_PISTOL :
-            popup(F("PISTOL"));
+            popup("PISTOL");
             break;
           case W_AKIMBO :
-            popup(F("AKIMBO"));
+            popup("AKIMBO");
             break;
           case W_REVOLVER :
-            popup(F("REVOLVER"));
+            popup("REVOLVER");
             break;
           case W_SNIPER :
-            popup(F("SNIPER"));
+            popup("SNIPER");
             break;
           case W_SHOTGUN :
-            popup(F("SHOTGUN"));
+            popup("SHOTGUN");
             break;
           case W_RIFLE :
-            popup(F("RIFLE"));
+            popup("RIFLE");
             break;
           case W_MACHINEGUN :
-            popup(F("MACHINEGUN"));
+            popup("MACHINEGUN");
             break;
           case W_DISK :
-            popup(F("DISK"));
+            popup("DISK");
             break;
           case W_LASER :
-            popup(F("LASER"));
+            popup("LASER");
             break;
           case W_GRENADE :
-            popup(F("GRENADE"));
+            popup("GRENADE");
             break;
           case W_ROCKET :
-            popup(F("ROCKET"));
+            popup("ROCKET");
             break;
           case W_MINE :
-            popup(F("MINE"));
+            popup("MINE");
             break;
         }
         if (world.mapNumber == 0) {
@@ -1620,23 +1631,23 @@ class Crate :
               if (unlockedWeapons < W_RIFLE) {
                 unlockedWeapons = W_RIFLE;
                 player.weapon.subtype = W_RIFLE;
-                popup(F("RIFLE UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 2);
+                popup("RIFLE UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 2);
               }
               break;
             case (SCORETHRESHOLD_2):
               if (unlockedWeapons < W_SHOTGUN) {
                 unlockedWeapons = W_SHOTGUN;
                 player.weapon.subtype = W_SHOTGUN;
-                popup(F("SHOTGUN UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 2);
+                popup("SHOTGUN UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 2);
               }
               break;
             case (SCORETHRESHOLD_3):
               if (unlockedMaps < 1) {
                 unlockedMaps = 1;
-                popup(F("NEW MAP UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("NEW MAP UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
           }
@@ -1647,39 +1658,39 @@ class Crate :
               if (unlockedWeapons < W_ROCKET) {
                 unlockedWeapons = W_ROCKET;
                 player.weapon.subtype = W_ROCKET;
-                popup(F("ROCKETS UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("ROCKETS UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_2):
               if (unlockedWeapons < W_CLUB) {
                 unlockedWeapons = W_CLUB;
                 player.weapon.subtype = W_CLUB;
-                popup(F("CLUB UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("CLUB UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_3):
               if (unlockedWeapons < W_REVOLVER) {
                 unlockedWeapons = W_REVOLVER;
                 player.weapon.subtype = W_REVOLVER;
-                popup(F("REVOLVER UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("REVOLVER UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_4):
               if (unlockedWeapons < W_MINE) {
                 unlockedWeapons = W_MINE;
                 player.weapon.subtype = W_MINE;
-                popup(F("MINES UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("MINES UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_5):
               if (unlockedMaps < 2) {
                 unlockedMaps = 2;
-                popup(F("NEW MAP UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("NEW MAP UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
           }
@@ -1690,39 +1701,39 @@ class Crate :
               if (unlockedWeapons < W_SNIPER) {
                 unlockedWeapons = W_SNIPER;
                 player.weapon.subtype = W_SNIPER;
-                popup(F("SNIPER UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("SNIPER UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_2):
               if (unlockedWeapons < W_MACHINEGUN) {
                 unlockedWeapons = W_MACHINEGUN;
                 player.weapon.subtype = W_MACHINEGUN;
-                popup(F("MACHINEGUN UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("MACHINEGUN UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_3):
               if (unlockedWeapons < W_GRENADE) {
                 unlockedWeapons = W_GRENADE;
                 player.weapon.subtype = W_GRENADE;
-                popup(F("GRENADES UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("GRENADES UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_4):
               if (unlockedWeapons < W_AKIMBO) {
                 unlockedWeapons = W_AKIMBO;
                 player.weapon.subtype = W_AKIMBO;
-                popup(F("AKIMBO UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("AKIMBO UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
             case (SCORETHRESHOLD_5):
               if (unlockedMaps < 3) {
                 unlockedMaps = 3;
-                popup(F("NEW MAP UNLOCKED!"), 40);
-                gb.sound.playPattern(power_up_sound, 0);
+                popup("NEW MAP UNLOCKED!", 40);
+                //gb.sound.playPattern(power_up_sound, 0);
               }
               break;
           }
@@ -1733,20 +1744,20 @@ class Crate :
               if (unlockedWeapons < W_DISK) {
                 unlockedWeapons = W_DISK;
                 player.weapon.subtype = W_DISK;
-                popup(F("DISK UNLOCKED!"), 40);
+                popup("DISK UNLOCKED!", 40);
               }
               break;
             case (SCORETHRESHOLD_4):
               if (unlockedWeapons < W_LASER) {
                 unlockedWeapons = W_LASER;
                 player.weapon.subtype = W_LASER;
-                popup(F("LASER UNLOCKED!"), 40);
+                popup("LASER UNLOCKED!", 40);
               }
               break;
             case (SCORETHRESHOLD_5):
               if (unlockedMaps < 4) {
                 unlockedMaps = 4;
-                popup(F("LAST MAP UNLOCKED!"), 40);
+                popup("LAST MAP UNLOCKED!", 40);
               }
               break;
           }
@@ -1758,7 +1769,7 @@ class Crate :
     void draw() {
       if (isOffScreen())
         return;
-      gb.display.drawBitmap(toScreenX(x), toScreenY(y), crateBitmap);
+      gb.drawBitmap(toScreenX(x), toScreenY(y), crateBitmap);
     }
 };
 
@@ -1766,24 +1777,25 @@ Crate crate;
 
 ///////////////////////////////////////////// SETUP
 void setup() {
+  gb.setFrameRate(20);
   gb.begin();
   loadEEPROM();
-  gb.sound.chanVolumes[2] = 1;
-  mainMenu();
   world.chooseMap();
 }
 
 ///////////////////////////////////////////// LOOP
 void loop() {
-  if (gb.update()) {
-    if (gb.buttons.pressed(BTN_C)) {
-      gamePaused();
-    }
+  if (gb.nextFrame()) {
+    //if () {
+    //  gamePaused();
+    //}
+    gb.display(CLEAR_BUFFER);
+    updateButtons();
 
     crate.update();
     player.update();
     enemiesEngine.update();
-    saveEEPROM(); //it checks if the values have changed before writting so it won't wear out the EEPROM
+    //saveEEPROM(); //it checks if the values have changed before writting so it won't wear out the EEPROM
 
     //camera smoothing
     //int x = (player.x + player.getWidth()/2)/SCALE - LCDWIDTH/2;
@@ -1840,10 +1852,11 @@ void loop() {
     if (player.dead) {
       byte count = 20;
       if (!popupTimeLeft) { //if the "new highscore" popup is no here
-        popup(F("GAME OVER!"), 20);
+        popup("GAME OVER!", 20);
       }
       while (1) {
-        if (gb.update()) {
+        if (gb.nextFrame()) {
+          gb.display(CLEAR_BUFFER);
           player.update();
           enemiesEngine.update();
           drawAll();
@@ -1851,7 +1864,7 @@ void loop() {
           if (!count) {
             break;
           }
-          if (gb.buttons.pressed(BTN_C)) {
+          if (gb.pressed(A_BUTTON) || gb.pressed(B_BUTTON)) {
             break;
           }
         }
@@ -1861,27 +1874,23 @@ void loop() {
   }
 }
 
-void mainMenu() {
-  gb.titleScreen(logo);
-  gb.pickRandomSeed();
-  gb.battery.show = false;
-}
-
 void gamePaused() {
   while (1) {
-    if (gb.update()) {
+    if (gb.nextFrame()) {
+      gb.display(CLEAR_BUFFER);
       drawAll();
-      gb.display.setColor(BLACK, WHITE);
-      gb.display.cursorX = 0;
-      gb.display.cursorY = 0;
-      gb.display.println(F("GAME PAUSED"));
-      gb.display.println(F("B: SAVE & QUIT"));
-      gb.display.println(F("C: RESUME"));
+      gb.cursor_x = 0;
+      gb.cursor_y = 0;
+      gb.setTextColor(WHITE);
+      gb.println("GAME PAUSED");
+      gb.println("A: SAVE & QUIT");
+      gb.println("B: RESUME");
+      gb.setTextColor(BLACK);
 
-      if (gb.buttons.pressed(BTN_C)) {
+      if (gb.pressed(B_BUTTON)) {
         return;
       }
-      if (gb.buttons.pressed(BTN_B)) {
+      if (gb.pressed(A_BUTTON)) {
         world.addScore(player.score);
         saveEEPROM();
         world.chooseMap();
@@ -1900,6 +1909,10 @@ void initGame() {
 }
 
 void drawAll() {
+  gb.setTextColor(WHITE);
+  gb.setCursor(103,8);
+  gb.print(player.score);
+  gb.setTextColor(BLACK);
   world.draw();
   crate.draw();
   enemiesEngine.draw();
@@ -1910,100 +1923,61 @@ void drawAll() {
   //draw explosions
   for (byte i = 0; i < NUMBULLETS; i++) {
     if (bullets[i].subtype == W_EXPLOSION) {
-      gb.display.setColor(INVERT);
+      gb.setTextColor(INVERT);
     }
     bullets[i].draw();
-    gb.display.setColor(BLACK);
+    gb.setTextColor(BLACK);
   }
-  gb.display.setColor(BLACK, WHITE);
-  gb.display.println(player.score);
   updatePopup();
 }
 
 void loadEEPROM() {
-  if (EEPROMreadInt(0) != EEPROM_TOKEN) {
-    cleanEEPROM();
-    return;
+  unlockedWeapons = gb.readEEPROM(EEPROM_WEAPONS_OFFSET);
+  unlockedMaps = gb.readEEPROM(EEPROM_MAPS_OFFSET);
+  for (uint16_t i = 0; i < NUMMAPS; i++) {
+    score[i] = gb.readEEPROM(EEPROM_SCORE_OFFSET + i);
   }
-  //load score for each map
-  for (int i = 0; i < NUMMAPS; i++) {
-    score[i] = EEPROMreadInt(i * 2 + EEPROM_SCORE_OFFSET);
-  }
-  unlockedWeapons = EEPROM.read(EEPROM_WEAPONS_OFFSET);
-  unlockedMaps = EEPROM.read(EEPROM_MAPS_OFFSET);
   world.mapNumber = unlockedMaps; //select the last unlocked map by default
 }
 
 void saveEEPROM() {
-  EEPROMwriteInt(0, EEPROM_TOKEN);
-  //save score for each map
-  for (byte i = 0; i < NUMMAPS; i++) {
-    if (EEPROMreadInt(i * 2 + EEPROM_SCORE_OFFSET) < score[i]) {
-      EEPROMwriteInt(i * 2 + EEPROM_SCORE_OFFSET, score[i]);
-    }
-  }
-  if (EEPROM.read(EEPROM_WEAPONS_OFFSET) < unlockedWeapons) {
-    EEPROM.write(EEPROM_WEAPONS_OFFSET, unlockedWeapons);
-  }
-  if (EEPROM.read(EEPROM_MAPS_OFFSET) < unlockedMaps) {
-    EEPROM.write(EEPROM_MAPS_OFFSET, unlockedMaps);
-  }
+  uint8_t data[2 + NUMMAPS] = {unlockedWeapons, unlockedMaps,
+                               score[0], score[1], score[2], score[3], score[4]};
+
+  gb.writeEEPROM((uint16_t) EEPROM_WEAPONS_OFFSET, &data, sizeof(data));
 }
 
-unsigned int EEPROMreadInt(unsigned int i) {
-  int value = EEPROM.read(i + 1) & 0x00FF; //LSB
-  value += (EEPROM.read(i) << 8) & 0xFF00; //MSB
-  return value;
+void printCentered(const char* text) {
+  gb.cursor_x = (strlen(text) < 14) ? (LCDWIDTH / 2) - (strlen(text) * 6 / 2) : 2;
+  gb.print(text);
 }
 
-void EEPROMwriteInt(unsigned int i, unsigned int value) {
-  EEPROM.write(i + 1, value & 0x00FF); //LSB
-  EEPROM.write(i, (value >> 8) & 0x00FF); //MSB
-}
-
-void cleanEEPROM() {
-  for (int i = 0; i < 1024; i++) {
-    if (EEPROM.read(i))
-      EEPROM.write(i, 0);
-  }
-}
-
-
-void printCentered(const __FlashStringHelper* text) {
-  gb.display.cursorX = (LCDWIDTH / 2) - (strlen_PF((unsigned long) text) * gb.display.fontSize * gb.display.fontWidth / 2);
-  gb.display.print(text);
-}
-
-void printCentered(char* text) {
-  gb.display.cursorX = (LCDWIDTH / 2) - (strlen(text) * gb.display.fontSize * gb.display.fontWidth / 2);
-  gb.display.print(text);
-}
-
-void popup(const __FlashStringHelper* text) {
+void popup(const char* text) {
   popup(text, 20);
 }
-void popup(const __FlashStringHelper* text, uint8_t duration) {
+void popup(const char* text, uint8_t duration) {
   popupText = text;
   popupTimeLeft = duration + 12;
 }
 
 void updatePopup() {
+  static uint8_t yOffset;
+
   if (popupTimeLeft) {
-    uint8_t yOffset = 0;
     if (popupTimeLeft < 12) {
-      yOffset = popupTimeLeft - 12;
+      yOffset++;
     }
-    byte width = strlen_PF((unsigned long) popupText) * gb.display.fontSize * gb.display.fontWidth;
-    gb.display.fontSize = 1;
-    gb.display.setColor(BLACK);
-    gb.display.drawRect(LCDWIDTH / 2 - width / 2 - 2, yOffset - 1, width + 2, gb.display.fontHeight + 2);
-    gb.display.setColor(WHITE);
-    gb.display.fillRect(LCDWIDTH / 2 - width / 2 - 1, yOffset - 1, width + 1, gb.display.fontHeight + 1);
-    gb.display.setColor(BLACK);
-    gb.display.cursorY = yOffset;
+    else yOffset = 55;
+    byte width = strlen(popupText) * 6;
+    byte rectX = (strlen(popupText) < 14) ? (LCDWIDTH / 2) - (width / 2) - 2 : 0;
+    gb.setTextSize(1);
+    gb.drawRect(rectX, yOffset - 2, width + 3, 11, WHITE);
+    gb.setTextColor(WHITE);
+    gb.cursor_y = yOffset;
     printCentered(popupText);
     popupTimeLeft--;
   }
+  gb.setTextColor(BLACK);
 }
 
 void drawCompass() {
@@ -2014,48 +1988,69 @@ void drawCompass() {
   if (dist > 20  ) {
     int dx = toScreenX(player.x + player.getWidth() / 2)   + (16 * x / dist);
     int dy = toScreenY(player.y + player.getHeight() / 2)  + (16 * y / dist);
-    //gb.display.setColor(GRAY);
-    gb.display.drawLine(dx, dy, dx + x / 8, dy + y / 8);
-    //gb.display.setColor(BLACK);
+    //gb.setTextColor(GRAY);
+    gb.drawLine(dx, dy, dx + x / 8, dy + y / 8);
+    //gb.setTextColor(BLACK);
   }
 }
 
+uint8_t states[6];
+uint8_t bits[6] = {RIGHT_BUTTON, LEFT_BUTTON, DOWN_BUTTON, UP_BUTTON, A_BUTTON, B_BUTTON};
+//---------------------------------------------------------------------------
+void updateButtons()
+{
+    for(uint8_t thisButton=0; thisButton<6; thisButton++)
+    {
+        // if button pressed
+        if(gb.pressed(bits[thisButton]))
+        {
+            // increase button hold time
+            states[thisButton]++;
+        }
+        else
+        {
+            // button idle
+            if(states[thisButton] == 0)
+            {
+                continue;
+            }
 
-/*void adjustContrasts(){
-  initGame();
-  byte contrast = gb.display.contrast;
-  while(1){
-    if(gb.update()){
-      if(gb.buttons.repeat(BTN_UP,2)){
-        contrast ++;
-        gb.display.setContrast(contrast);
-      }
-      if(gb.buttons.repeat(BTN_DOWN,2)){
-        contrast --;
-        gb.display.setContrast(contrast);
-      }
-      if(gb.buttons.pressed(BTN_A)){
-        break;
-      }
-      if(gb.buttons.pressed(BTN_B)){
-        break;
-      }
-
-      player.weapon.subtype = 7;
-      if((gb.frameCount)%20 == 0){
-        player.weapon.shoot();
-      }
-      player.weapon.update();
-      drawAll();
-
-      gb.display.cursorY = 0;
-      gb.display.setColor(BLACK, WHITE);
-      gb.display.print(F("Adjust contrasts\nfor this game:  "));
-      gb.display.print(F("\37"));
-      gb.display.print(contrast);
-      gb.display.println(F("\36"));
-      gb.display.cursorY = LCDHEIGHT - 5;
-      gb.display.print(F("  A:OK B:Default"));
+            // if previously released
+            if(states[thisButton] == 0xFF)
+            {
+                // set to idle
+                states[thisButton] = 0;
+            }
+            else
+            {
+                // button just released
+                states[thisButton] = 0xFF;
+            }
+        }
     }
-  }
-}*/
+}
+//---------------------------------------------------------------------------
+boolean repeat(uint8_t button, uint8_t period)
+{
+    if(period <= 1)
+    {
+        if((states[button] != 0xFF) && (states[button]))
+        {
+            return true;
+        }
+    }
+    else
+    {
+        if((states[button] != 0xFF) && ((states[button] % period) == 1))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+//---------------------------------------------------------------------------
+uint8_t timeHeld(uint8_t button)
+{
+    return (states[button] != 0xFF) ? states[button] : 0;
+}
