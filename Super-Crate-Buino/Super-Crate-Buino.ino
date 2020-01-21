@@ -1,4 +1,4 @@
- /*
+/*
  * (C) Copyright 2014 Aurélien Rodot. All rights reserved.
  *
  * You can redistribute this program and/or modify
@@ -18,11 +18,9 @@
 #include <Arduboy2.h>
 Arduboy2 gb;
 
-//Warning : this game require 3 channels, please set #NUM_CHANNELS 3 in libraries/gamebuino/settings.c or you won't hear all the sounds
-
 const byte logo[] PROGMEM = {64,30,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xFF,0xFF,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x81,0x32,0x4,0x8,0x10,0x0,0x0,0x0,0x9F,0x32,0x64,0xF9,0x90,0x0,0x0,0x0,0x81,0x32,0x4,0x38,0x30,0x0,0x0,0x0,0xF9,0x32,0x7C,0xF9,0x90,0x0,0x0,0x0,0x81,0x2,0x7C,0x9,0x90,0x0,0x0,0x0,0xFF,0xFF,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x81,0x2,0x4,0x8,0x10,0x0,0x0,0x0,0x9F,0x32,0x67,0x39,0xF0,0x0,0x0,0x0,0x9F,0x6,0x7,0x38,0x70,0x0,0x0,0x0,0x9F,0x32,0x67,0x39,0xF0,0x0,0x0,0x0,0x81,0x32,0x67,0x38,0x10,0x0,0x0,0x0,0xFF,0xFF,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x60,0x4C,0x93,0x20,0x60,0x60,0x0,0x0,0x26,0x4C,0x91,0x26,0x40,0x1,0xF8,0x0,0x20,0xCC,0x92,0x26,0x40,0xD,0xF8,0x20,0xA6,0x4C,0x93,0x26,0x40,0x81,0xF,0xE4,0x20,0x40,0x93,0x20,0x40,0x1,0xBF,0x80,0x3F,0xFF,0xFF,0xFF,0xC0,0x1,0xF8,0x0,0x7,0xFF,0xFF,0xFE,0x0,0x1,0xF8,0x0,0x0,0xFF,0xFF,0xF0,0x0,0x1,0xF8,0x0,0x0,0x1F,0xFF,0x80,0x0,0x1,0x98,0x0,0x0,0x3,0xFC,0x0,0x0,0xFF,0xFF,0xF0,0x0,0x0,0x60,0x0,0x0,0x0,0x0,0x8,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x8,0x0,0x0,0x0,0x0,0x0,0xC3,0xC,0x8,0x0,0x0,0x0,0x0,0x0,0x34,0xD3,0x48,0x0,0x0,0x0,0x0,0x0,0xCB,0x2C,0xB8,0x0,0x0,0x0,0x0,0x0,};
 
-// for Gamebuino button functions
+//for Gamebuino button functions
 #define GB_BTN_RIGHT     0
 #define GB_BTN_LEFT      1
 #define GB_BTN_DOWN      2
@@ -68,7 +66,7 @@ const uint8_t scoreThresholds[] = {SCORETHRESHOLD_1, SCORETHRESHOLD_2, SCORETHRE
 #define E_SMALL 0
 #define E_BIG 1
 
-//there is a scale between the world cccordinates and the screen coordinates
+//there is a scale between the world coordinates and the screen coordinates
 //to allow sub pixel accuracy without the use of floats
 #define SCALE 8
 
@@ -85,24 +83,21 @@ int toScreenY(int y) {
 }
 
 ///////////////////////////////////////////// SOUNDS
+const uint16_t player_damage_sound[] = {NOTE_B4, 50, NOTE_B4, 50, NOTE_B4, 50, TONES_END};
+const uint16_t grenade_sound[] = {NOTE_A3, 50, TONES_END};
+const uint16_t machinegun_sound[] = {NOTE_D5, 50, NOTE_A4, 100, NOTE_GS3, 100, NOTE_G3, 50, TONES_END};
+const uint16_t rocket_sound[] = {NOTE_A5, 3000, TONES_END};
+const uint16_t blast_sound[] = {NOTE_GS3, 50, NOTE_G3, 50, NOTE_FS3, 50, NOTE_F3, 50, NOTE_E3, 50, NOTE_DS3, 50, NOTE_D3, 50, NOTE_CS3, 50, NOTE_C3, 50, NOTE_B2, 50, TONES_END};
+const uint16_t power_up_sound[] = {NOTE_D4, 50, NOTE_FS4, 50, NOTE_A4, 50, NOTE_D5, 50, NOTE_FS5, 50, NOTE_CS5, 50, NOTE_G4, 50, NOTE_AS4, 50, NOTE_DS5, 50, NOTE_G5, 50, NOTE_F4, 50, NOTE_A4, 50, NOTE_C5, 50, NOTE_F5, 50, NOTE_A5, 50, TONES_END};
+const uint16_t enemy_death_sound[] = {NOTE_G5, 50, TONES_END};
+const uint16_t jump_sound[] = {NOTE_G5, 50, NOTE_GS5, 50, NOTE_A5, 50, TONES_END};
+const uint16_t enemy_felt_sound[] = {NOTE_FS3, 750, TONES_END};
+const uint16_t shotgun_sound[] = {NOTE_B4, 150, TONES_END};
+const uint16_t laser_sound[] = {NOTE_D6, 50, NOTE_CS6, 50, NOTE_C6, 50, NOTE_B5, 50, NOTE_AS5, 50, NOTE_A5, 50, TONES_END};
+const uint16_t club_sound[] = {NOTE_E3, 50, NOTE_DS3, 50, NOTE_D3, 50, TONES_END};
 
-const uint16_t player_damage_sound[] PROGMEM = {0x0045, 0x564, 0x0000};
-const uint16_t revolver_sound[] PROGMEM = {0x0045, 0x7049, 0x17C, 0x784D, 0x42C, 0x0000};
-const uint16_t grenade_sound[] PROGMEM = {0x0045, 0x012C, 0x0000};
-const uint16_t machinegun_sound[] PROGMEM = {0x0045, 0x140, 0x8141, 0x7849, 0x788D, 0x52C, 0x0000};
-const uint16_t rocket_sound[] PROGMEM = {0x8045, 0x8001, 0x8889, 0x3C5C, 0x0000};
-const uint16_t blast_sound[] PROGMEM = {0x0045, 0x7849, 0x784D, 0xA28, 0x0000};
-const uint16_t power_up_sound[] PROGMEM = {0x0005, 0x140, 0x150, 0x15C, 0x170, 0x180, 0x16C, 0x154, 0x160, 0x174, 0x184, 0x14C, 0x15C, 0x168, 0x17C, 0x18C, 0x0000};
-const uint16_t enemy_death_sound[] PROGMEM = {0x0045, 0x184, 0x0000};
-const uint16_t jump_sound[] PROGMEM = {0x0005, 0x7049, 0x884D, 0x354, 0x0000};
-const uint16_t enemy_felt_sound[] PROGMEM = {0x8005, 0x8001, 0x8849, 0xF20, 0x0000};
-const uint16_t shotgun_sound[] PROGMEM = {0x0045, 0x7049, 0x334, 0x0000};
-const uint16_t laser_sound[] PROGMEM = {0x0005, 0x784D, 0x7849, 0x670, 0x0000};
-const uint16_t club_sound[] PROGMEM = {0x8005, 0x784D, 0x7849, 0x318, 0x0000};
-
-
-
-
+const uint16_t playOK[] = {NOTE_C4, 50, NOTE_C5, 50, TONES_END};
+const uint16_t playTick[] = {NOTE_C5, 50, TONES_END};
 
 ///////////////////////////////////////////// WORLD
 #define SPRITE_SIZE 6
@@ -250,7 +245,6 @@ const byte blackWall[] PROGMEM = {
   8, 6, 0xF4, 0xFC, 0xBC, 0xF8, 0xFC, 0xDC,
 };
 
-
 class World {
   public:
     const byte* tiles;
@@ -359,6 +353,8 @@ class World {
       uint8_t toggleBlink = 1;
       while (1) {
         if (gb.nextFrame()) {
+          gb.timer2();
+          gb.timer();
           gb.display(CLEAR_BUFFER);
           gb.pollButtons();
 
@@ -766,7 +762,7 @@ class Bullet :
           //set the camera shake
           shakeTimeLeft = 10;
           shakeAmplitude = 2;
-          //gb.sound.playPattern(blast_sound, 0);
+          gb.tone2(blast_sound);
         }
       }
     }
@@ -830,7 +826,6 @@ const byte grenade[] PROGMEM = {
 const byte grenade_white[] PROGMEM = {
   24, 3, 0x0, 0x38, 0x0, 0x0, 0x0, 0x0, 0x0, 0x38, 0x0
 };
-
 
 class Weapon {
   public:
@@ -1000,32 +995,32 @@ class Weapon {
 
       switch (subtype) {
         case W_ROCKET :
-          //gb.sound.playPattern(rocket_sound, 0);
+          gb.tone2(rocket_sound, -1);
           break;
         case W_REVOLVER :
         case W_MACHINEGUN :
         case W_SNIPER :
-          //gb.sound.playPattern(machinegun_sound, 0);
+          gb.tone2(machinegun_sound, -1);
           break;
         case W_GRENADE :
         case W_DISK :
-          //gb.sound.playPattern(grenade_sound, 0);
+          gb.tone(grenade_sound);
           break;
         case W_SHOTGUN :
-          //gb.sound.playPattern(shotgun_sound, 0);
+          gb.tone2(shotgun_sound, -1);
           break;
         case W_MINE :
           break;
         case W_PISTOL :
         case W_AKIMBO :
         case W_RIFLE :
-          //gb.sound.playTick();
+          gb.tone(playTick);
           break;
         case W_LASER :
-          //gb.sound.playPattern(laser_sound, 0);
+          gb.tone2(laser_sound, -1);
           break;
         case W_CLUB :
-          //gb.sound.playPattern(club_sound, 0);
+          gb.tone2(club_sound, -1);
           break;
       }
     }
@@ -1138,7 +1133,7 @@ class Weapon {
           bitmapWhite = 0;
       }
 
-      if (bitmap) { //draw the weappon
+      if (bitmap) { //draw the weapon
         gb.drawBitmap(bx, by, bitmap, NOROT, flip);
       }
       if (bitmapWhite) {
@@ -1181,7 +1176,6 @@ const byte playerBitmap[][11] PROGMEM = {
   {8, 9, 0x0, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x1C, 0x1C, 0x18,},
   {8, 9, 0x0, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x3C, 0x30,}
 };
-
 
 class Player :
   public Box {
@@ -1240,6 +1234,8 @@ class Player :
         popup("NEW HIGHSCORE!", 40);
       }
       saveEEPROM();
+      gb.tone(player_damage_sound);
+      gb.noTone2();
     }
 
     void update() {
@@ -1275,14 +1271,14 @@ class Player :
           if (world.solidCollisionAtPosition(x, y + 1, getWidth(), getHeight())) {
             vy = -32;
             jumping = true;
-            //gb.sound.playPattern(jump_sound, 1);
+            gb.tone2(jump_sound, -1);
           }
           else {
             if (doubleJumped == false) {
               vy = -32;
               doubleJumped = true;
               jumping = true;
-              //gb.sound.playPattern(jump_sound, 1);
+              gb.tone2(jump_sound, -1);
             }
           }
         }
@@ -1395,13 +1391,13 @@ class Enemy :
     int update() {
       if (active) {
         Box::update();
-        //respawn in "angry" mod whel enemies falls at the bottom of the map
+        //respawn in "angry" mod when enemies falls at the bottom of the map
         if (y > world.getHeight()) {
           if (health > 0) {
             x = world.getWidth() / 2 - getWidth() / 2;
             y = 0;
             vx = dir * 20;
-            //gb.sound.playPattern(enemy_felt_sound, 2);
+            gb.tone2(enemy_felt_sound, 1);
           }
           else {
             active = false;
@@ -1429,7 +1425,7 @@ class Enemy :
 ///////////////////////////////////////////// ENEMY ENGINE
 /////////////////////////////////////////////
 
-#define NUMENEMIES 10
+#define NUMENEMIES 15
 Enemy enemies[NUMENEMIES];
 
 class EnemiesEngine {
@@ -1488,7 +1484,7 @@ class EnemiesEngine {
             }
             if (bullets[j].getDamage() > enemies[i].health) enemies[i].health = 0;
             else enemies[i].health -= bullets[j].getDamage();
-            //make the ennemy jump when dead
+            //make the enemy jump when dead
             if (enemies[i].health <= 0) {
               int dir;
               if (bullets[j].subtype == W_EXPLOSION) { //fly away from the explosive
@@ -1500,10 +1496,10 @@ class EnemiesEngine {
               //throw the enemy in the air
               enemies[i].vx = dir * random(24, 32);
               enemies[i].vy = random(-48, -64);
-              //gb.sound.playPattern(enemy_death_sound, 1);
+              gb.tone(enemy_death_sound);
             }
             else {
-              if (bullets[j].subtype == W_CLUB) { // if not dead, go away from the player when hit by a club
+              if (bullets[j].subtype == W_CLUB) { //if not dead, go away from the player when hit by a club
                 int dir = (enemies[i].x + enemies[i].getWidth() / 2) - (player.x + player.getWidth() / 2) > 0 ? 1 : -1;
                 enemies[i].vx = dir * abs(enemies[i].vx);
               }
@@ -1515,8 +1511,8 @@ class EnemiesEngine {
       if (!nextSpawnCount) { //spawn enemies
         //spawn rate increase slowly depending on score
         //when score is 0, monsters spawn every 60 frames (3 s)
-        //when score is 50 monsters swpan every 30 frames (1.5 s)
-        //they won't spaw faster than every 10 frames (0.5 s)
+        //when score is 50 monsters spawn every 30 frames (1.5 s)
+        //they won't spawn faster than every 10 frames (0.5 s)
         nextSpawnCount = map(player.score, 0, 50, 60, 30);
         nextSpawnCount = max(nextSpawnCount, 10);
         addEnemy();
@@ -1538,7 +1534,6 @@ class EnemiesEngine {
 };
 
 EnemiesEngine enemiesEngine;
-
 
 ///////////////////////////////////////////// CRATE
 const byte crateBitmap[] PROGMEM = {
@@ -1580,7 +1575,7 @@ class Crate :
       if (gb.collideRectRect(x, y, getWidth(), getHeight(),
                              player.x, player.y, player.getWidth(), player.getHeight())) {
         player.score++;
-        //gb.sound.playOK();
+        gb.tone(playOK);
         //add a random value to the weapon type inferior to the number of weapons
         //to avoid picking the same weapon
         player.weapon.subtype = (player.weapon.subtype + random(1, unlockedWeapons + 1)) % (unlockedWeapons + 1);
@@ -1632,7 +1627,7 @@ class Crate :
                 unlockedWeapons = W_RIFLE;
                 player.weapon.subtype = W_RIFLE;
                 popup("RIFLE UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 2);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_2):
@@ -1640,14 +1635,14 @@ class Crate :
                 unlockedWeapons = W_SHOTGUN;
                 player.weapon.subtype = W_SHOTGUN;
                 popup("SHOTGUN UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 2);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_3):
               if (unlockedMaps < 1) {
                 unlockedMaps = 1;
                 popup("NEW MAP UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
           }
@@ -1659,7 +1654,7 @@ class Crate :
                 unlockedWeapons = W_ROCKET;
                 player.weapon.subtype = W_ROCKET;
                 popup("ROCKETS UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_2):
@@ -1667,7 +1662,7 @@ class Crate :
                 unlockedWeapons = W_CLUB;
                 player.weapon.subtype = W_CLUB;
                 popup("CLUB UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_3):
@@ -1675,7 +1670,7 @@ class Crate :
                 unlockedWeapons = W_REVOLVER;
                 player.weapon.subtype = W_REVOLVER;
                 popup("REVOLVER UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_4):
@@ -1683,14 +1678,14 @@ class Crate :
                 unlockedWeapons = W_MINE;
                 player.weapon.subtype = W_MINE;
                 popup("MINES UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_5):
               if (unlockedMaps < 2) {
                 unlockedMaps = 2;
                 popup("NEW MAP UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
           }
@@ -1702,7 +1697,7 @@ class Crate :
                 unlockedWeapons = W_SNIPER;
                 player.weapon.subtype = W_SNIPER;
                 popup("SNIPER UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_2):
@@ -1710,7 +1705,7 @@ class Crate :
                 unlockedWeapons = W_MACHINEGUN;
                 player.weapon.subtype = W_MACHINEGUN;
                 popup("MACHINEGUN UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_3):
@@ -1718,7 +1713,7 @@ class Crate :
                 unlockedWeapons = W_GRENADE;
                 player.weapon.subtype = W_GRENADE;
                 popup("GRENADES UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_4):
@@ -1726,14 +1721,14 @@ class Crate :
                 unlockedWeapons = W_AKIMBO;
                 player.weapon.subtype = W_AKIMBO;
                 popup("AKIMBO UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
             case (SCORETHRESHOLD_5):
               if (unlockedMaps < 3) {
                 unlockedMaps = 3;
                 popup("NEW MAP UNLOCKED!", 40);
-                //gb.sound.playPattern(power_up_sound, 0);
+                gb.tone(power_up_sound);
               }
               break;
           }
@@ -1789,6 +1784,8 @@ void loop() {
     //if () {
     //  gamePaused();
     //}
+    gb.timer2();
+    gb.timer();
     gb.display(CLEAR_BUFFER);
     updateButtons();
 
@@ -1856,6 +1853,8 @@ void loop() {
       }
       while (1) {
         if (gb.nextFrame()) {
+          gb.timer2();
+          gb.timer();
           gb.display(CLEAR_BUFFER);
           player.update();
           enemiesEngine.update();
@@ -1877,6 +1876,8 @@ void loop() {
 void gamePaused() {
   while (1) {
     if (gb.nextFrame()) {
+      gb.timer2();
+      gb.timer();
       gb.display(CLEAR_BUFFER);
       drawAll();
       gb.cursor_x = 0;
@@ -1955,6 +1956,7 @@ void printCentered(const char* text) {
 void popup(const char* text) {
   popup(text, 20);
 }
+
 void popup(const char* text, uint8_t duration) {
   popupText = text;
   popupTimeLeft = duration + 12;
